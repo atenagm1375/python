@@ -36,6 +36,20 @@ def use_database(name):
                         if row == [line.split(' ')[2].split(';\n')[0]]:
                             for i in table.__next__():
                                 print(i)
+                if t == 3:
+                    database.close()
+                    with open(name+'.csv', 'r+', newline='') as database:
+                        table = csv.reader(database)
+                        line = line.split(' ')
+                        for row in table:
+                            if row == [line[2]]:
+                                database.seek(len(row))
+                        table = csv.writer(database)
+                        com = line[4:]
+                        print(com)
+                        #com[-1] = com[-1].split(';\n')[0]
+                        com = [col.split(',')[0] for col in com]
+                        table.writerow(com);
             else:
                 sys.exit(0)
 
@@ -60,6 +74,8 @@ def command(line):
         return 1
     elif line[0] == "SHOW" and line[1] == "TABLE":
         return 2
+    elif line[0] == "INSERT" and line[1] == "INTO":
+        return 3
 
 while True:
     global database
