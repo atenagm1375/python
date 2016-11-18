@@ -9,36 +9,36 @@ def create_database(name):
 
 def use_database(name):
     global table
-    with open(name+'.csv', 'a', newline='') as database:
-        table = csv.reader(database)
-        while True:
-            line = sys.stdin.readline()
-            if line:
-                t = command(line.split(' '))
+    database = open(name+'.csv', 'a', newline='')
+    table = csv.reader(database)
+    while True:
+        line = sys.stdin.readline()
+        if line:
+            t = command(line.split(' '))
+            if t == 1:
+                database.close()
+                database = open(name+'.csv', 'r', newline='')
+                table = csv.reader(database)
+                for row in table:
+                    if row == [line.split(' ')[2].split(';\n')[0]]:
+                        t = 0
+                database.close()
+                database = open(name+'.csv', 'a', newline='')
                 if t == 1:
-                    database.close()
-                    database = open(name+'.csv', 'r', newline='')
-                    table = csv.reader(database)
-                    for row in table:
-                        if row == [line.split(' ')[2].split(';\n')[0]]:
-                            t = 0
-                    database.close()
-                    with open(name+'.csv', 'a', newline='') as database:
-                        if t == 1:
-                            table = csv.writer(database)
-                            table.writerow([table_name])
-                            table.writerow(col_name)
-                if t == 2:
-                    database.close()
-                    database = open(name+'.csv', 'r', newline='')
-                    table = csv.reader(database)
-                    for row in table:
-                        if row == [line.split(' ')[2].split(';\n')[0]]:
-                            for i in table.__next__():
-                                print(i)
-            else:
-                sys.exit(0)
-
+                    table = csv.writer(database)
+                    table.writerow([table_name])
+                    table.writerow(col_name)
+            if t == 2:
+                database.close()
+                database = open(name+'.csv', 'r', newline='')
+                table = csv.reader(database)
+                for row in table:
+                    if row == [line.split(' ')[2].split(';\n')[0]]:
+                        for i in table.__next__():
+                            print(i)
+        else:
+            sys.exit(0)
+    database.close()
 
 def create_table(com):
     global table_name
