@@ -53,6 +53,32 @@ def use_database(name):
                 f.close()
                 database.close()
                 shutil.move(name+'.csv.temp', name+'.csv')
+            if t == 4:
+                database.close()
+                database = open(name+'.csv', 'r')
+                table = csv.reader(database)
+                query = []
+                b = True
+                for row in table:
+                    if [line.strip(';\n').split(' ')[3]] == row:
+                        row = table.__next__()
+                        i = 0
+                        while b and i < len(row):
+                            if line.strip(';\n').split(' ')[1] == row[i]:
+                                r = table.__next__()
+                                while(len(row) == len(r)):
+                                    query.append(r[i])
+                                    try:
+                                        r = table.__next__()
+                                    except StopIteration:
+                                        b = False
+                                        break
+                                    b = False
+                            i += 1
+                    if not b:
+                        break
+                for i in range(len(query)):
+                    print(query[-(i + 1)])
         else:
             sys.exit(0)
     database.close()
@@ -78,6 +104,8 @@ def command(line):
         return 2
     elif line[0] == "INSERT" and line[1] == "INTO":
         return 3
+    elif line[0] == "SELECT":
+        return 4
 
 while True:
     global database
