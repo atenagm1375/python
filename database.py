@@ -3,114 +3,137 @@ import csv
 import os
 import shutil
 
-def create_database(name):
+def create_database(line):
     try:
-        database = open(name+'.csv', 'w')
-    except IOError:
+        database = open(line[2]+'.csv', 'w')
         database.close()
+    except IOError:
+        print('>>ERROR WHILE CREATING FILE\nTRY AGAIN...')
 
-def use_database(name):
-    global table
-    database = open(name+'.csv', 'a')
+def use_database(line):
+    if not line[1].lower() == 'database':
+        syntax_error(line)
+        return
+    database_name = line[2]+'.csv'
+    try:
+        database = open(database_name, 'a')
+        database.close()
+    except IOError:
+        print('>>NO FILE NAMED '+database_name)
+
+def show_table(line):
+    if not line[1].lower() == 'table':
+        syntax_error(line)
+        return
+    database = open(database_name, 'r')
     table = csv.reader(database)
-    while True:
-        line = sys.stdin.readline()
-        if line:
-            t = command(line.strip(';\n').split(' '))
-            if t == 1:
-                database.close()
-                database = open(name+'.csv', 'r')
-                table = csv.reader(database)
-                for row in table:
-                    if row == [line.strip(';\n').split(' ')[2]]:
-                        t = 0
-                database.close()
-                database = open(name+'.csv', 'a')
-                if t == 1:
-                    table = csv.writer(database)
-                    table.writerow([table_name])
-                    table.writerow(col_name)
-            if t == 2:
-                database.close()
-                database = open(name+'.csv', 'r')
-                table = csv.reader(database)
-                for row in table:
-                    if row == [line.strip(';\n').split(' ')[2]]:
-                        for i in table.__next__():
-                            print(i)
-            if t == 3:
-                database.close()
-                database = open(name+'.csv', 'r')
-                f = open(name+'.csv.temp', 'w')
-                tableR = csv.reader(database)
-                tableW = csv.writer(f)
-                for row in tableR:
-                    print(row)
-                    tableW.writerow(row)
-                    if row == [line.strip(';\n').split(' ')[2]]:
-                        tableW.writerow(tableR.__next__())
-                        tableW.writerow(line.strip(';\n').replace(', ', ' ').split(' ')[4:])
-                f.close()
-                database.close()
-                shutil.move(name+'.csv.temp', name+'.csv')
-            if t == 4:
-                database.close()
-                database = open(name+'.csv', 'r')
-                table = csv.reader(database)
-                query = []
-                b = True
-                for row in table:
-                    if [line.strip(';\n').split(' ')[3]] == row:
-                        row = table.__next__()
-                        i = 0
-                        while b and i < len(row):
-                            if line.strip(';\n').split(' ')[1] == row[i]:
-                                r = table.__next__()
-                                while(len(row) == len(r)):
-                                    query.append(r[i])
-                                    try:
-                                        r = table.__next__()
-                                    except StopIteration:
-                                        b = False
-                                        break
-                                    b = False
-                            i += 1
-                    if not b:
-                        break
-                for i in range(len(query)):
-                    print(query[-(i + 1)])
-        else:
-            sys.exit(0)
+    found = False
+    for row in table:
+        if row == [line[2]]:
+            found = True
+            for i in next(table):
+                print(i)
+    if not found:
+        print('>>NO SUCH TABLE!')
     database.close()
 
-def create_table(com):
-    global table_name
-    table_name = com[0]
-    global col_name
-    com = [col.split(',')[0] for col in com] 
-    col_name = com[2:]
+def create_table(line):
+    if not line[3].lower() == 'columns':
+        syntax_error(line)
+        return
+    database = open(database_name, 'r')
+    table = csv.reader(database)
+    found = False
+    for row in table:
+        if row == [line[2]]:
+            found = True
+            print('>>TABLE ALREADY EXISTS')
+    database.close()
+    if not found:
+        database = open(database_name, 'a')
+        table = csv.writer(database)
+        table.writerow([line[2]])
+        table.writerow(line[4:])
+
+def insert_into(line):
+    if not line[3].lower() == 'values' or not line[1].lower() == 'into':
+        syntax_error(line)
+        return
+    database = open(database_name, 'r')
+    temp = open(database_name+'.temp', 'w')
+    tableR = csv.reader(database)
+    tableW = csv.writer(temp)
+    found = False
+    for row in tableR:
+        tableW.writerow(row)
+        if row == [line[2]]:
+            found = True
+            tableW.writerow(next(tableR))
+            tableW.writerow(line[4:])
+    temp.close()
+    database.close()
+    shutil.move(database_name+'.temp', database_name)
+    if not found:
+        print('>>NO SUCH TABLE!')
+
+def select(line):
+    if not line[2].lower() == 'from':
+        syntax_error(line)
+        return
+    database = open(database_name, 'r')
+    table = csv.reader(database)
+    query = []
+    found = False
+    temp = False
+    for row in table:
+        if row == [line[3]]:
+            found = True
+            row = next(table)
+            i = 0
+            while temp and i < len(row):
+                if row[i] == line[1]:
+                    r = next(table)
+                    while len(row) == len(r):
+                        query.append(r[i])
+                        try:
+                            r = next(table)
+                        except StopIteration:
+                            temp = True
+                            break
+                        temp = True
+                i += 1
+        if temp:
+            break
+    database.close()
+    if not temp:
+        print('>>NO SUCH QUERY!')
+        return
+    for i in range(len(query)):
+        print(query[-(i + 1)])
+
+def syntax_error(line):
+    print('>>INVALID SYNTAX<<')
 
 def command(line):
-    if line[0] == "CREATE" and line[1] == "DATABASE":
-        create_database(line[2])
-        return 0
-    elif line[0] == "USE" and line[1] == "DATABASE":
-        use_database(line[2])
-        return 0
-    elif line[0] == "CREATE" and line[1] == "TABLE":
-        create_table(line[2:])
-        return 1
-    elif line[0] == "SHOW" and line[1] == "TABLE":
-        return 2
-    elif line[0] == "INSERT" and line[1] == "INTO":
-        return 3
-    elif line[0] == "SELECT":
-        return 4
+    if line[0].lower() == 'create' and line[1].lower() == 'database':
+        create_database(line)
+    elif line[0].lower() == 'use':
+        use_database(line)
+    elif line[0].lower() == 'show':
+        show_table(line)
+    elif line[0].lower() == 'create' and line[1].lower() == 'table':
+        create_table(line)
+    elif line[0].lower() == 'insert':
+        insert_into(line)
+    elif line[0].lower() == 'select':
+        select(line)
+    else:
+        syntax_error(line)
 
+global database_name
 while True:
-    global database
     line = sys.stdin.readline()
     if line:
-       command(line.strip(';\n').split(' '))
+        command(line.strip(';\n').replace(', ', ' ').split(' '))
     else:
         sys.exit(0)
