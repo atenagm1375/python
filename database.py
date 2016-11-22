@@ -70,7 +70,7 @@ def insert_into(line):
         syntax_error(line)
         return
     try:
-        database = open(database_name, 'r')
+        database = open(database_name, 'r+')
     except NameError:
         print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
         return
@@ -81,7 +81,6 @@ def insert_into(line):
         if line[2] in row:
             found = True
             columns = ast.literal_eval(row[line[2]])
-    database = open(database_name, 'w')
     tableW = csv.DictWriter(database, columns)
     tableW.writerow(dict(zip(columns, line[4:])))
     database.close()
@@ -103,9 +102,12 @@ def select(line):
     for row in table:
         if line[3] in row:
             found_table = True
-            if line[1] in row[line[3]]:
+            l = ast.literal_eval(row[line[3]])
+            print(row)
+            print(l)
+            if line[1] in l:
                 found_query = True
-                for i in row[line[3]][line[1]]:
+                for i in ast.literal_eval(l[line[1]]):
                     print(i)
     database.close()
     if not found_query:
