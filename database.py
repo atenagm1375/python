@@ -2,6 +2,7 @@ import sys
 import csv
 import os
 import shutil
+import ast
 
 def create_database(line):
     try:
@@ -14,9 +15,10 @@ def use_database(line):
     if not line[1].lower() == 'database':
         syntax_error(line)
         return
+    global database_name
     database_name = line[2]+'.csv'
     try:
-        database = open(database_name, 'a')
+        database = open(database_name, 'r')
         database.close()
     except IOError:
         print('>>NO FILE NAMED '+database_name)
@@ -25,13 +27,17 @@ def show_table(line):
     if not line[1].lower() == 'table':
         syntax_error(line)
         return
-    database = open(database_name, 'r')
-    table = csv.reader(database)
+    try:
+        database = open(database_name, 'r')
+    except NameError:
+        print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
+        return
+    table = csv.DictReader(database)
     found = False
     for row in table:
-        if row == [line[2]]:
+        if line[2] in row:
             found = True
-            for i in next(table):
+            for i in ast.literal_eval(row[line[2]]):
                 print(i)
     if not found:
         print('>>NO SUCH TABLE!')
@@ -41,38 +47,44 @@ def create_table(line):
     if not line[3].lower() == 'columns':
         syntax_error(line)
         return
-    database = open(database_name, 'r')
-    table = csv.reader(database)
+    try:
+        database = open(database_name, 'r')
+    except NameError:
+        print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
+        return
+    table = csv.DictReader(database)
     found = False
     for row in table:
-        if row == [line[2]]:
+        if line[2] in row:
             found = True
             print('>>TABLE ALREADY EXISTS')
     database.close()
     if not found:
-        database = open(database_name, 'a')
-        table = csv.writer(database)
-        table.writerow([line[2]])
-        table.writerow(line[4:])
+        database = open(database_name, 'w')
+        table = csv.DictWriter(database, [line[2]])
+        table.writeheader()
+        table.writerow({line[2]: line[4:]})
 
 def insert_into(line):
     if not line[3].lower() == 'values' or not line[1].lower() == 'into':
         syntax_error(line)
         return
-    database = open(database_name, 'r')
-    temp = open(database_name+'.temp', 'w')
-    tableR = csv.reader(database)
-    tableW = csv.writer(temp)
+    try:
+        database = open(database_name, 'r')
+    except NameError:
+        print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
+        return
+    tableR = csv.DictReader(database)
     found = False
+    columns = []
     for row in tableR:
-        tableW.writerow(row)
-        if row == [line[2]]:
+        if line[2] in row:
             found = True
-            tableW.writerow(next(tableR))
-            tableW.writerow(line[4:])
-    temp.close()
+            columns = ast.literal_eval(row[line[2]])
+    database = open(database_name, 'w')
+    tableW = csv.DictWriter(database, columns)
+    tableW.writerow(dict(zip(columns, line[4:])))
     database.close()
-    shutil.move(database_name+'.temp', database_name)
     if not found:
         print('>>NO SUCH TABLE!')
 
@@ -80,36 +92,28 @@ def select(line):
     if not line[2].lower() == 'from':
         syntax_error(line)
         return
-    database = open(database_name, 'r')
-    table = csv.reader(database)
-    query = []
-    found = False
-    temp = False
+    try:
+        database = open(database_name, 'r')
+    except NameError:
+        print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
+        return
+    table = csv.DictReader(database)
+    found_table = False
+    found_query = False
     for row in table:
-        if row == [line[3]]:
-            found = True
-            row = next(table)
-            i = 0
-            while temp and i < len(row):
-                if row[i] == line[1]:
-                    r = next(table)
-                    while len(row) == len(r):
-                        query.append(r[i])
-                        try:
-                            r = next(table)
-                        except StopIteration:
-                            temp = True
-                            break
-                        temp = True
-                i += 1
-        if temp:
-            break
+        if line[3] in row:
+            found_table = True
+            if line[1] in row[line[3]]:
+                found_query = True
+                for i in row[line[3]][line[1]]:
+                    print(i)
     database.close()
-    if not temp:
+    if not found_query:
         print('>>NO SUCH QUERY!')
         return
-    for i in range(len(query)):
-        print(query[-(i + 1)])
+    if not found_table:
+        print('>>NO SUCH TABLE!')
+        return
 
 def syntax_error(line):
     print('>>INVALID SYNTAX<<')
@@ -130,7 +134,6 @@ def command(line):
     else:
         syntax_error(line)
 
-global database_name
 while True:
     line = sys.stdin.readline()
     if line:
