@@ -1,7 +1,5 @@
 import sys
 import csv
-import os
-import shutil
 import ast
 
 def create_database(line):
@@ -30,7 +28,7 @@ def show_table(line):
     try:
         database = open(database_name, 'r')
     except NameError:
-        print('>>CHOOSE THE DATABASE USING \'USE DATABASE\' COMMAND FIRST')
+        print('>>CHOOSE THE DATABASE USING "USE DATABASE" COMMAND FIRST')
         return
     table = csv.DictReader(database)
     found = False
