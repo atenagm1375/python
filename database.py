@@ -103,12 +103,13 @@ def select(line):
         if line[3] in row:
             found_table = True
             l = ast.literal_eval(row[line[3]])
+            tableR = csv.DictReader(database, l)
             print(row)
-            print(l)
-            if line[1] in l:
-                found_query = True
-                for i in ast.literal_eval(l[line[1]]):
-                    print(i)
+            for r in tableR:
+                print(r)
+                if line[1] in r:
+                    found_query = True
+                    print(r[line[1]])
     database.close()
     if not found_query:
         print('>>NO SUCH QUERY!')
